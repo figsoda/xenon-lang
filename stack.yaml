@@ -1,0 +1,5 @@
+resolver: lts-16.11
+
+packages:
+- xec
+- xenon-parser

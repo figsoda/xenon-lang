@@ -1,0 +1,16 @@
+name: xenon-parser
+version: 0.1.0.0
+github: figsoda/xenon-lang
+license: MPL-2.0
+author: figsoda
+
+description: Parser for xenon programming language
+
+dependencies:
+  - base
+  - megaparsec
+  - parser-combinators
+  - text
+
+library:
+  source-dirs: src

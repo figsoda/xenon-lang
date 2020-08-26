@@ -1,0 +1,23 @@
+name: xec
+version: 0.1.0.0
+github: figsoda/xenon-lang
+license: MPL-2.0
+author: figsoda
+
+description: Compiler for xenon programming language
+
+dependencies:
+  - base
+  - text
+
+executables:
+  xec:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+      - -Wall
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - xenon-parser
