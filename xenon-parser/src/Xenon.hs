@@ -15,7 +15,7 @@ import Data.Void (Void)
 import GHC.Exts (fromList)
 import Numeric.Natural (Natural)
 import System.IO (hFlush, stdout)
-import Text.Megaparsec (Parsec, anySingle, chunk, eof, label, parseTest, satisfy, try, unexpected)
+import Text.Megaparsec (Parsec, anySingle, chunk, eof, failure, parseTest, satisfy, try)
 import Text.Megaparsec.Char (char, space1)
 import Text.Megaparsec.Char.Lexer (binary, decimal, float, hexadecimal, octal, skipBlockComment, skipLineComment, space)
 import Text.Megaparsec.Error (ErrorItem (..))
@@ -72,7 +72,10 @@ ident = try $ do
     ys -> pure ys
   where
     ukw :: String -> Parser String
-    ukw = label "identifier" . unexpected . Label . fromList . ("keyword " ++) . show
+    ukw xs =
+      failure
+        (Just $ Label $ fromList $ ("keyword " ++ show xs))
+        (fromList [Label $ fromList "identifier"])
 
 expr :: [[Operator Parser Expr]] -> Parser Expr
 expr opss = makeExprParser (NE.some (term <* ws) <&> call) opss
