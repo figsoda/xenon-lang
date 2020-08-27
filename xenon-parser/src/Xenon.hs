@@ -3,7 +3,7 @@
 
 module Xenon (test) where
 
-import Control.Monad.Combinators (between, choice, many, sepBy1, sepEndBy, some, (<|>))
+import Control.Monad.Combinators (between, choice, many, manyTill, sepBy1, sepEndBy, some, (<|>))
 import Control.Monad.Combinators.Expr (Operator (..), makeExprParser)
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.Functor (($>), (<&>))
@@ -12,7 +12,7 @@ import Data.Text (Text, pack)
 import Data.Void (Void)
 import Numeric.Natural (Natural)
 import System.IO (hFlush, stdout)
-import Text.Megaparsec (Parsec, anySingle, anySingleBut, chunk, eof, parseTest, satisfy, try)
+import Text.Megaparsec (Parsec, anySingle, chunk, eof, parseTest, satisfy, try)
 import Text.Megaparsec.Char (char, space1)
 import Text.Megaparsec.Char.Lexer (binary, decimal, float, hexadecimal, octal, skipBlockComment, skipLineComment, space)
 
@@ -69,9 +69,9 @@ expr opss = makeExprParser (some (term <* ws) <&> call) opss
           try (sign <* (char '0' >> char 'X' <|> char 'x')) <*> hexadecimal <&> Int,
           try (sign <*> float) <&> Float,
           try (sign <*> decimal) <&> Int,
-          between (char '\'') (char '\'') (anySingleBut '\\' <|> esc) <&> Char,
-          between (char '"') (char '"') (many $ satisfy (\x -> x /= '\\' && x /= '"') <|> esc) <&> String,
-          between (chunk "r\"") (char '"') (many $ anySingleBut '"') <&> String,
+          between (char '\'') (char '\'') esc <&> Char,
+          char '"' >> manyTill esc (char '"') <&> String,
+          chunk "r\"" >> manyTill anySingle (char '"') <&> String,
           sepBy1 ((:) <$> satisfy alpha <*> many (satisfy $ \x -> alpha x || isDigit x)) (char '.') <&> Var,
           between (char '(' <* ws) (char ')') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> \case
             [] -> Unit
@@ -85,7 +85,7 @@ expr opss = makeExprParser (some (term <* ws) <&> call) opss
 
     esc =
       char '\\'
-        >> choice
+        *> choice
           [ char '0' $> '\0',
             char 'n' $> '\n',
             char 'r' $> '\r',
@@ -95,5 +95,6 @@ expr opss = makeExprParser (some (term <* ws) <&> call) opss
               if x < 0x110000 then pure $ toEnum x else fail "invalid unicode character escape",
             anySingle
           ]
+        <|> anySingle
 
     alpha x = isAsciiUpper x || isAsciiLower x
