@@ -40,7 +40,7 @@ instance Show Expr where
   show Unit = "Unit"
   show (Tuple x) = '(' : intercalate "," (map show x) ++ ")"
   show (List x) = show x
-  show (Call x y) = '(' : show x ++ ' ' : show y ++ ")"
+  show (Call x xs) = '(' : intercalate " " (map show $ x : xs) ++ ")"
 
 test :: IO ()
 test = do
@@ -57,8 +57,11 @@ op :: String -> Parser (Expr -> Expr -> Expr)
 op xs = (chunk (pack xs) <* ws) $> \x y -> Call (Var [xs]) [x, y]
 
 expr :: [[Operator Parser Expr]] -> Parser Expr
-expr opss = makeExprParser (some (term <* ws) <&> \(x : xs) -> Call x xs) opss
+expr opss = makeExprParser (some (term <* ws) <&> call) opss
   where
+    call [x] = x
+    call (x : xs) = Call x xs
+
     term =
       choice
         [ try (sign <* (char '0' >> char 'B' <|> char 'b')) <*> binary <&> Int,
