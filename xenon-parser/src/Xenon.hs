@@ -29,6 +29,7 @@ data Expr
   | Tuple [Expr]
   | List [Expr]
   | Call Expr [Expr]
+  | Let [Expr] Expr Expr
 
 instance Show Expr where
   show (Int x) = show x
@@ -41,6 +42,7 @@ instance Show Expr where
   show (Tuple x) = '(' : intercalate "," (map show x) ++ ")"
   show (List x) = show x
   show (Call x xs) = '(' : intercalate " " (map show $ x : xs) ++ ")"
+  show (Let pat val x) = "let " ++ intercalate " " (map show pat) ++ " = " ++ show val ++ " in " ++ show x
 
 test :: IO ()
 test = do
@@ -72,7 +74,11 @@ expr opss = makeExprParser (some (term <* ws) <&> call) opss
           between (char '\'') (char '\'') esc <&> Char,
           char '"' >> manyTill esc (char '"') <&> String,
           chunk "r\"" >> manyTill anySingle (char '"') <&> String,
-          sepBy1 ((:) <$> satisfy alpha <*> many (satisfy $ \x -> alpha x || isDigit x)) (char '.') <&> Var,
+          do
+            pat <- chunk "let" <* ws >> manyTill (term <* ws) (char '=' <* ws)
+            val <- expr opss <* ws <* chunk "in" <* ws
+            expr opss <&> Let pat val,
+          sepBy1 (try $ (:) <$> satisfy alpha <*> many (satisfy $ \x -> alpha x || isDigit x) >>= notKeyword) (char '.') <&> Var,
           between (char '(' <* ws) (char ')') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> \case
             [] -> Unit
             [x] -> x
@@ -98,3 +104,5 @@ expr opss = makeExprParser (some (term <* ws) <&> call) opss
         <|> anySingle
 
     alpha x = isAsciiUpper x || isAsciiLower x
+
+    notKeyword xs = if elem xs ["let", "in"] then fail ("unexpected keyword " ++ xs) else pure xs
