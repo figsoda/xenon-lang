@@ -3,14 +3,16 @@
 
 module Xenon (test) where
 
-import Control.Monad.Combinators (between, choice, many, manyTill, sepBy1, sepEndBy, some, (<|>))
+import Control.Monad.Combinators (between, choice, many, manyTill, sepBy1, sepEndBy, (<|>))
 import Control.Monad.Combinators.Expr (Operator (..), makeExprParser)
+import qualified Control.Monad.Combinators.NonEmpty as NE (some)
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.Functor (($>), (<&>))
 import Data.List (intercalate)
-import qualified Data.List.NonEmpty as NE (fromList)
+import Data.List.NonEmpty (NonEmpty (..))
 import Data.Text (Text, pack)
 import Data.Void (Void)
+import GHC.Exts (fromList)
 import Numeric.Natural (Natural)
 import System.IO (hFlush, stdout)
 import Text.Megaparsec (Parsec, anySingle, chunk, eof, label, parseTest, satisfy, try, unexpected)
@@ -70,13 +72,13 @@ ident = try $ do
     ys -> pure ys
   where
     ukw :: String -> Parser String
-    ukw = label "identifier" . unexpected . Label . NE.fromList . ("keyword " ++) . show
+    ukw = label "identifier" . unexpected . Label . fromList . ("keyword " ++) . show
 
 expr :: [[Operator Parser Expr]] -> Parser Expr
-expr opss = makeExprParser (some (term <* ws) <&> call) opss
+expr opss = makeExprParser (NE.some (term <* ws) <&> call) opss
   where
-    call [x] = x
-    call (x : xs) = Call x xs
+    call (x :| []) = x
+    call (x :| xs) = Call x xs
 
     term =
       choice
