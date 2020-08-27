@@ -8,13 +8,15 @@ import Control.Monad.Combinators.Expr (Operator (..), makeExprParser)
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.Functor (($>), (<&>))
 import Data.List (intercalate)
+import qualified Data.List.NonEmpty as NE (fromList)
 import Data.Text (Text, pack)
 import Data.Void (Void)
 import Numeric.Natural (Natural)
 import System.IO (hFlush, stdout)
-import Text.Megaparsec (Parsec, anySingle, chunk, eof, parseTest, satisfy, try)
+import Text.Megaparsec (Parsec, anySingle, chunk, eof, label, parseTest, satisfy, try, unexpected)
 import Text.Megaparsec.Char (char, space1)
 import Text.Megaparsec.Char.Lexer (binary, decimal, float, hexadecimal, octal, skipBlockComment, skipLineComment, space)
+import Text.Megaparsec.Error (ErrorItem (..))
 
 type Parser = Parsec Void Text
 
@@ -58,6 +60,18 @@ ws = space space1 (skipLineComment "//") (skipBlockComment "/*" "*/")
 op :: String -> Parser (Expr -> Expr -> Expr)
 op xs = (chunk (pack xs) <* ws) $> \x y -> Call (Var [xs]) [x, y]
 
+ident :: Parser String
+ident = try $ do
+  x <- satisfy $ \x -> isAsciiUpper x || isAsciiLower x
+  xs <- many $ satisfy $ \y -> isDigit y || isAsciiUpper y || isAsciiLower y
+  case (x : xs) of
+    "let" -> ukw "let"
+    "in" -> ukw "in"
+    ys -> pure ys
+  where
+    ukw :: String -> Parser String
+    ukw = label "identifier" . unexpected . Label . NE.fromList . ("keyword " ++) . show
+
 expr :: [[Operator Parser Expr]] -> Parser Expr
 expr opss = makeExprParser (some (term <* ws) <&> call) opss
   where
@@ -78,7 +92,7 @@ expr opss = makeExprParser (some (term <* ws) <&> call) opss
             pat <- chunk "let" <* ws >> manyTill (term <* ws) (char '=' <* ws)
             val <- expr opss <* ws <* chunk "in" <* ws
             expr opss <&> Let pat val,
-          sepBy1 (try $ (:) <$> satisfy alpha <*> many (satisfy $ \x -> alpha x || isDigit x) >>= notKeyword) (char '.') <&> Var,
+          sepBy1 ident (char '.') <&> Var,
           between (char '(' <* ws) (char ')') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> \case
             [] -> Unit
             [x] -> x
@@ -102,7 +116,3 @@ expr opss = makeExprParser (some (term <* ws) <&> call) opss
             anySingle
           ]
         <|> anySingle
-
-    alpha x = isAsciiUpper x || isAsciiLower x
-
-    notKeyword xs = if elem xs ["let", "in"] then fail ("unexpected keyword " ++ xs) else pure xs
