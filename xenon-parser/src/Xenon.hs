@@ -28,7 +28,7 @@ data Expr
   | Unit
   | Tuple [Expr]
   | List [Expr]
-  | Call Expr Expr
+  | Call Expr [Expr]
 
 instance Show Expr where
   show (Int x) = show x
@@ -54,10 +54,10 @@ ws :: Parser ()
 ws = space space1 (skipLineComment "//") (skipBlockComment "/*" "*/")
 
 op :: String -> Parser (Expr -> Expr -> Expr)
-op xs = (chunk (pack xs) >> ws) $> Call . Call (Var [xs])
+op xs = (chunk (pack xs) <* ws) $> \x y -> Call (Var [xs]) [x, y]
 
 expr :: [[Operator Parser Expr]] -> Parser Expr
-expr opss = makeExprParser (some (term <* ws) <&> foldl1 Call) opss
+expr opss = makeExprParser (some (term <* ws) <&> \(x : xs) -> Call x xs) opss
   where
     term =
       choice
@@ -70,11 +70,11 @@ expr opss = makeExprParser (some (term <* ws) <&> foldl1 Call) opss
           between (char '"') (char '"') (many $ satisfy (\x -> x /= '\\' && x /= '"') <|> esc) <&> String,
           between (chunk "r\"") (char '"') (many $ anySingleBut '"') <&> String,
           sepBy1 ((:) <$> satisfy alpha <*> many (satisfy $ \x -> alpha x || isDigit x)) (char '.') <&> Var,
-          between (char '(' >> ws) (char ')') (sepEndBy (expr opss <* ws) (char ',' >> ws)) <&> \case
+          between (char '(' <* ws) (char ')') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> \case
             [] -> Unit
             [x] -> x
             xs -> Tuple xs,
-          between (char '[' >> ws) (char ']') (sepEndBy (expr opss <* ws) (char ',' >> ws)) <&> List
+          between (char '[' <* ws) (char ']') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> List
         ]
 
     sign :: Num a => Parser (a -> a)
