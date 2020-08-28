@@ -11,16 +11,23 @@ import Data.Functor (($>), (<&>))
 import Data.List (intercalate)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Text (Text, pack)
-import Data.Void (Void)
 import GHC.Exts (fromList)
 import Numeric.Natural (Natural)
 import System.IO (hFlush, stdout)
-import Text.Megaparsec (Parsec, anySingle, chunk, eof, failure, parseTest, satisfy, try)
+import Text.Megaparsec (Parsec, ShowErrorComponent (..), anySingle, chunk, customFailure, eof, failure, parseTest, satisfy, try)
 import Text.Megaparsec.Char (char, space1)
 import Text.Megaparsec.Char.Lexer (binary, decimal, float, hexadecimal, octal, skipBlockComment, skipLineComment, space)
 import Text.Megaparsec.Error (ErrorItem (..))
 
-type Parser = Parsec Void Text
+data Error
+  = InvalidUnicodeEscape
+  deriving (Eq, Ord)
+
+instance ShowErrorComponent Error where
+  showErrorComponent = \case
+    InvalidUnicodeEscape -> "invalid unicode escape, unicode escape must be at most 0x10ffff"
+
+type Parser = Parsec Error Text
 
 data Expr
   = Int Integer
@@ -74,7 +81,7 @@ ident = try $ do
     ukw :: String -> Parser String
     ukw xs =
       failure
-        (Just $ Label $ fromList $ ("keyword " ++ show xs))
+        (Just $ Label $ fromList ("keyword " ++ show xs))
         (fromList [Label $ fromList "identifier"])
 
 term :: [[Operator Parser Expr]] -> Parser Expr
@@ -96,8 +103,8 @@ term opss =
       between (char '[' <* ws) (char ']') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> List,
       do
         pat <- chunk "let" <* ws >> expr opss
-        val <- char '=' <* ws >> expr opss <* ws <* chunk "in" <* ws
-        expr opss <&> Let pat val
+        val <- char '=' <* ws >> expr opss <* ws
+        chunk "in" <* ws >> expr opss <&> Let pat val
     ]
   where
     sign :: Num a => Parser (a -> a)
@@ -112,7 +119,7 @@ term opss =
             char 't' $> '\t',
             do
               x <- between (char '{') (char '}') hexadecimal
-              if x < 0x110000 then pure $ toEnum x else fail "invalid unicode character escape",
+              if x < 0x110000 then pure $ toEnum x else customFailure InvalidUnicodeEscape,
             anySingle
           ]
         <|> anySingle
