@@ -77,34 +77,29 @@ ident = try $ do
         (Just $ Label $ fromList $ ("keyword " ++ show xs))
         (fromList [Label $ fromList "identifier"])
 
-expr :: [[Operator Parser Expr]] -> Parser Expr
-expr opss = makeExprParser (NE.some (term <* ws) <&> call) opss
+term :: [[Operator Parser Expr]] -> Parser Expr
+term opss =
+  choice
+    [ try (sign <* (char '0' >> char 'B' <|> char 'b')) <*> binary <&> Int,
+      try (sign <* (char '0' >> char 'O' <|> char 'o')) <*> octal <&> Int,
+      try (sign <* (char '0' >> char 'X' <|> char 'x')) <*> hexadecimal <&> Int,
+      try (sign <*> float) <&> Float,
+      try (sign <*> decimal) <&> Int,
+      between (char '\'') (char '\'') esc <&> Char,
+      char '"' >> manyTill esc (char '"') <&> String,
+      chunk "r\"" >> manyTill anySingle (char '"') <&> String,
+      do
+        pat <- chunk "let" <* ws >> manyTill (term opss <* ws) (char '=' <* ws)
+        val <- expr opss <* ws <* chunk "in" <* ws
+        expr opss <&> Let pat val,
+      sepBy1 ident (char '.') <&> Var,
+      between (char '(' <* ws) (char ')') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> \case
+        [] -> Unit
+        [x] -> x
+        xs -> Tuple xs,
+      between (char '[' <* ws) (char ']') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> List
+    ]
   where
-    call (x :| []) = x
-    call (x :| xs) = Call x xs
-
-    term =
-      choice
-        [ try (sign <* (char '0' >> char 'B' <|> char 'b')) <*> binary <&> Int,
-          try (sign <* (char '0' >> char 'O' <|> char 'o')) <*> octal <&> Int,
-          try (sign <* (char '0' >> char 'X' <|> char 'x')) <*> hexadecimal <&> Int,
-          try (sign <*> float) <&> Float,
-          try (sign <*> decimal) <&> Int,
-          between (char '\'') (char '\'') esc <&> Char,
-          char '"' >> manyTill esc (char '"') <&> String,
-          chunk "r\"" >> manyTill anySingle (char '"') <&> String,
-          do
-            pat <- chunk "let" <* ws >> manyTill (term <* ws) (char '=' <* ws)
-            val <- expr opss <* ws <* chunk "in" <* ws
-            expr opss <&> Let pat val,
-          sepBy1 ident (char '.') <&> Var,
-          between (char '(' <* ws) (char ')') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> \case
-            [] -> Unit
-            [x] -> x
-            xs -> Tuple xs,
-          between (char '[' <* ws) (char ']') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> List
-        ]
-
     sign :: Num a => Parser (a -> a)
     sign = char '-' $> negate <|> pure id
 
@@ -121,3 +116,9 @@ expr opss = makeExprParser (NE.some (term <* ws) <&> call) opss
             anySingle
           ]
         <|> anySingle
+
+expr :: [[Operator Parser Expr]] -> Parser Expr
+expr opss = makeExprParser (NE.some (term opss <* ws) <&> call) opss
+  where
+    call (x :| []) = x
+    call (x :| xs) = Call x xs
