@@ -32,8 +32,8 @@ data Expr
   | Unit
   | Tuple [Expr]
   | List [Expr]
-  | Call Expr [Expr]
-  | Let [Expr] Expr Expr
+  | App Expr [Expr]
+  | Let Expr Expr Expr
 
 instance Show Expr where
   show (Int x) = show x
@@ -45,8 +45,8 @@ instance Show Expr where
   show Unit = "Unit"
   show (Tuple x) = '(' : intercalate "," (map show x) ++ ")"
   show (List x) = show x
-  show (Call x xs) = '(' : intercalate " " (map show $ x : xs) ++ ")"
-  show (Let pat val x) = "let " ++ intercalate " " (map show pat) ++ " = " ++ show val ++ " in " ++ show x
+  show (App x xs) = '(' : intercalate " " (map show $ x : xs) ++ ")"
+  show (Let pat val x) = "let " ++ show pat ++ " = " ++ show val ++ " in " ++ show x
 
 test :: IO ()
 test = do
@@ -60,15 +60,15 @@ ws :: Parser ()
 ws = space space1 (skipLineComment "//") (skipBlockComment "/*" "*/")
 
 op :: String -> Parser (Expr -> Expr -> Expr)
-op xs = (chunk (pack xs) <* ws) $> \x y -> Call (Var [xs]) [x, y]
+op xs = (chunk (pack xs) <* ws) $> \x y -> App (Var [xs]) [x, y]
 
 ident :: Parser String
 ident = try $ do
   x <- satisfy $ \x -> isAsciiUpper x || isAsciiLower x
   xs <- many $ satisfy $ \y -> isDigit y || isAsciiUpper y || isAsciiLower y
   case (x : xs) of
-    "let" -> ukw "let"
     "in" -> ukw "in"
+    "let" -> ukw "let"
     ys -> pure ys
   where
     ukw :: String -> Parser String
@@ -88,16 +88,16 @@ term opss =
       between (char '\'') (char '\'') esc <&> Char,
       char '"' >> manyTill esc (char '"') <&> String,
       chunk "r\"" >> manyTill anySingle (char '"') <&> String,
-      do
-        pat <- chunk "let" <* ws >> manyTill (term opss <* ws) (char '=' <* ws)
-        val <- expr opss <* ws <* chunk "in" <* ws
-        expr opss <&> Let pat val,
       sepBy1 ident (char '.') <&> Var,
       between (char '(' <* ws) (char ')') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> \case
         [] -> Unit
         [x] -> x
         xs -> Tuple xs,
-      between (char '[' <* ws) (char ']') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> List
+      between (char '[' <* ws) (char ']') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> List,
+      do
+        pat <- chunk "let" <* ws >> expr opss
+        val <- char '=' <* ws >> expr opss <* ws <* chunk "in" <* ws
+        expr opss <&> Let pat val
     ]
   where
     sign :: Num a => Parser (a -> a)
@@ -118,7 +118,7 @@ term opss =
         <|> anySingle
 
 expr :: [[Operator Parser Expr]] -> Parser Expr
-expr opss = makeExprParser (NE.some (term opss <* ws) <&> call) opss
+expr opss = makeExprParser (NE.some (term opss <* ws) <&> app) opss
   where
-    call (x :| []) = x
-    call (x :| xs) = Call x xs
+    app (x :| []) = x
+    app (x :| xs) = App x xs
