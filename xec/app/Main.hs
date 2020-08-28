@@ -1,6 +1,6 @@
 module Main where
 
-import Xenon (test)
+import Xenon.Parser (test)
 
 main :: IO ()
 main = test

@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Xenon (test) where
+module Xenon.Parser (test) where
 
 import Control.Monad.Combinators (between, choice, many, manyTill, sepBy1, sepEndBy, (<|>))
 import Control.Monad.Combinators.Expr (Operator (..), makeExprParser)
