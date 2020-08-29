@@ -48,8 +48,8 @@ instance Show Expr where
   show (Float x) = show x
   show (Char x) = show x
   show (String x) = show x
-  show (Var x) = foldl1 ( (++) . ('.' :)) x
-  show Unit = "Unit"
+  show (Var x) = foldl1 ((++) . (++ ".")) x
+  show Unit = "()"
   show (Tuple x) = '(' : intercalate "," (map show x) ++ ")"
   show (List x) = show x
   show (App x xs) = '(' : intercalate " " (map show $ x : xs) ++ ")"
