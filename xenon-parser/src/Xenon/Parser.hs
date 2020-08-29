@@ -42,6 +42,7 @@ data Expr
   | List [Expr]
   | App Expr [Expr]
   | Let Expr Expr Expr
+  | If Expr Expr Expr
   | Match Expr (NonEmpty (NonEmpty Expr, Maybe Expr, Expr))
 
 instance Show Expr where
@@ -56,6 +57,7 @@ instance Show Expr where
   show (List x) = show x
   show (App x xs) = '(' : intercalate " " (map show $ x : xs) ++ ")"
   show (Let pat val x) = "let " ++ show pat ++ " = " ++ show val ++ " in " ++ show x
+  show (If cond x y) = "if " ++ show cond ++ " then " ++ show x ++ " else " ++ show y
   show (Match x xs) =
     "match " ++ show x ++ " with"
       ++ concatMap
@@ -86,9 +88,12 @@ ident = try $ do
   x <- satisfy $ \x -> isAsciiUpper x || isAsciiLower x
   xs <- many $ satisfy $ \y -> isDigit y || isAsciiUpper y || isAsciiLower y
   case (x : xs) of
+    "else" -> ukw "else"
+    "if" -> ukw "if"
     "in" -> ukw "in"
     "let" -> ukw "let"
     "match" -> ukw "match"
+    "then" -> ukw "then"
     "when" -> ukw "when"
     "with" -> ukw "with"
     ys -> pure ys
@@ -120,6 +125,11 @@ term opss =
         pat <- chunk "let" <* ws >> expr opss
         val <- char '=' <* ws >> expr opss
         chunk "in" <* ws >> expr opss <&> Let pat val,
+      do
+        cond <- chunk "if" <* ws >> expr opss
+        x <- chunk "then" <* ws >> expr opss
+        y <- chunk "else" <* ws >> expr opss
+        pure $ If cond x y,
       do
         val <- chunk "match" <* ws >> expr opss <* chunk "with" <* ws
         arms <- some $ do
