@@ -1,5 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 
 module Xenon.Parser (test) where
 
@@ -14,7 +15,7 @@ import Data.Text (Text, pack)
 import GHC.Exts (fromList)
 import Numeric.Natural (Natural)
 import System.IO (hFlush, stdout)
-import Text.Megaparsec (Parsec, ShowErrorComponent (..), anySingle, chunk, customFailure, eof, failure, parseTest, satisfy, try)
+import Text.Megaparsec (Parsec, ShowErrorComponent (..), anySingle, chunk, customFailure, eof, failure, notFollowedBy, oneOf, optional, parseTest, satisfy, try)
 import Text.Megaparsec.Char (char, space1)
 import Text.Megaparsec.Char.Lexer (binary, decimal, float, hexadecimal, octal, skipBlockComment, skipLineComment, space)
 import Text.Megaparsec.Error (ErrorItem (..))
@@ -41,6 +42,7 @@ data Expr
   | List [Expr]
   | App Expr [Expr]
   | Let Expr Expr Expr
+  | Match Expr (NonEmpty (NonEmpty Expr, Maybe Expr, Expr))
 
 instance Show Expr where
   show (Int x) = show x
@@ -54,6 +56,13 @@ instance Show Expr where
   show (List x) = show x
   show (App x xs) = '(' : intercalate " " (map show $ x : xs) ++ ")"
   show (Let pat val x) = "let " ++ show pat ++ " = " ++ show val ++ " in " ++ show x
+  show (Match x xs) =
+    "match " ++ show x ++ " with"
+      ++ concatMap
+        ( \(pats, guard, val) ->
+            concatMap ((" | " ++) . show) pats ++ maybe "" ((" when " ++) . show) guard ++ " -> " ++ show val
+        )
+        xs
 
 test :: IO ()
 test = do
@@ -66,8 +75,11 @@ test = do
 ws :: Parser ()
 ws = space space1 (skipLineComment "//") (skipBlockComment "/*" "*/")
 
+sym :: Parser Char
+sym = oneOf ("!#$%&*+-/:<=>@\\^|" :: String)
+
 op :: String -> Parser (Expr -> Expr -> Expr)
-op xs = (chunk (pack xs) <* ws) $> \x y -> App (Var $ xs :| []) [x, y]
+op xs = (try $ chunk (pack xs) <* notFollowedBy sym <* ws) $> \x y -> App (Var $ xs :| []) [x, y]
 
 ident :: Parser String
 ident = try $ do
@@ -76,6 +88,9 @@ ident = try $ do
   case (x : xs) of
     "in" -> ukw "in"
     "let" -> ukw "let"
+    "match" -> ukw "match"
+    "when" -> ukw "when"
+    "with" -> ukw "with"
     ys -> pure ys
   where
     ukw :: String -> Parser String
@@ -104,7 +119,14 @@ term opss =
       do
         pat <- chunk "let" <* ws >> expr opss
         val <- char '=' <* ws >> expr opss <* ws
-        chunk "in" <* ws >> expr opss <&> Let pat val
+        chunk "in" <* ws >> expr opss <&> Let pat val,
+      do
+        val <- chunk "match" <* ws >> expr opss <* chunk "with" <* ws
+        arms <- some $ do
+          pat <- some $ char '|' <* ws >> expr opss <* ws
+          cond <- optional $ chunk "when" <* ws >> expr opss <* ws
+          chunk "->" <* ws >> expr opss <&> (pat,cond,)
+        pure $ Match val arms
     ]
   where
     sign :: Num a => Parser (a -> a)
