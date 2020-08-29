@@ -3,9 +3,9 @@
 
 module Xenon.Parser (test) where
 
-import Control.Monad.Combinators (between, choice, many, manyTill, sepBy1, sepEndBy, (<|>))
+import Control.Monad.Combinators (between, choice, many, manyTill, sepEndBy, (<|>))
 import Control.Monad.Combinators.Expr (Operator (..), makeExprParser)
-import qualified Control.Monad.Combinators.NonEmpty as NE (some)
+import Control.Monad.Combinators.NonEmpty (sepBy1, some)
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.Functor (($>), (<&>))
 import Data.List (intercalate)
@@ -35,7 +35,7 @@ data Expr
   | Float Double
   | Char Char
   | String String
-  | Var [String]
+  | Var (NonEmpty String)
   | Unit
   | Tuple [Expr]
   | List [Expr]
@@ -48,7 +48,7 @@ instance Show Expr where
   show (Float x) = show x
   show (Char x) = show x
   show (String x) = show x
-  show (Var x) = intercalate "." x
+  show (Var x) = foldl1 ( (++) . ('.' :)) x
   show Unit = "Unit"
   show (Tuple x) = '(' : intercalate "," (map show x) ++ ")"
   show (List x) = show x
@@ -67,7 +67,7 @@ ws :: Parser ()
 ws = space space1 (skipLineComment "//") (skipBlockComment "/*" "*/")
 
 op :: String -> Parser (Expr -> Expr -> Expr)
-op xs = (chunk (pack xs) <* ws) $> \x y -> App (Var [xs]) [x, y]
+op xs = (chunk (pack xs) <* ws) $> \x y -> App (Var $ xs :| []) [x, y]
 
 ident :: Parser String
 ident = try $ do
@@ -125,7 +125,7 @@ term opss =
         <|> anySingle
 
 expr :: [[Operator Parser Expr]] -> Parser Expr
-expr opss = makeExprParser (NE.some (term opss <* ws) <&> app) opss
+expr opss = makeExprParser (some (term opss <* ws) <&> app) opss
   where
     app (x :| []) = x
     app (x :| xs) = App x xs
