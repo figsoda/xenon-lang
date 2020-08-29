@@ -111,21 +111,21 @@ term opss =
       char '"' >> manyTill esc (char '"') <&> String,
       chunk "r\"" >> manyTill anySingle (char '"') <&> String,
       sepBy1 ident (char '.') <&> Var,
-      between (char '(' <* ws) (char ')') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> \case
+      between (char '(' <* ws) (char ')') (sepEndBy (expr opss) (char ',' <* ws)) <&> \case
         [] -> Unit
         [x] -> x
         xs -> Tuple xs,
-      between (char '[' <* ws) (char ']') (sepEndBy (expr opss <* ws) (char ',' <* ws)) <&> List,
+      between (char '[' <* ws) (char ']') (sepEndBy (expr opss) (char ',' <* ws)) <&> List,
       do
         pat <- chunk "let" <* ws >> expr opss
-        val <- char '=' <* ws >> expr opss <* ws
+        val <- char '=' <* ws >> expr opss
         chunk "in" <* ws >> expr opss <&> Let pat val,
       do
         val <- chunk "match" <* ws >> expr opss <* chunk "with" <* ws
         arms <- some $ do
-          pat <- some $ char '|' <* ws >> expr opss <* ws
-          cond <- optional $ chunk "when" <* ws >> expr opss <* ws
-          chunk "->" <* ws >> expr opss <&> (pat,cond,)
+          pat <- some $ char '|' <* ws >> expr opss
+          guard <- optional $ chunk "when" <* ws >> expr opss
+          chunk "->" <* ws >> expr opss <&> (pat,guard,)
         pure $ Match val arms
     ]
   where
