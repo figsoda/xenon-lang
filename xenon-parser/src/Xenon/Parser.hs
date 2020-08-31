@@ -18,6 +18,7 @@ import Text.Megaparsec (Parsec, ShowErrorComponent (..), anySingle, chunk, custo
 import Text.Megaparsec.Char (char, space1)
 import Text.Megaparsec.Char.Lexer (binary, decimal, float, hexadecimal, octal, skipBlockComment, skipLineComment, space)
 import Text.Megaparsec.Error (ErrorItem (..))
+import Text.Printf (printf)
 
 data Error
   = InvalidUnicodeEscape
@@ -55,8 +56,8 @@ instance Show Expr where
   show (Tuple x) = '(' : intercalate "," (map show x) ++ ")"
   show (List x) = show x
   show (App x xs) = '(' : intercalate " " (map show $ x : xs) ++ ")"
-  show (Let pat val x) = "let " ++ show pat ++ " = " ++ show val ++ " in " ++ show x
-  show (If cond x y) = "if " ++ show cond ++ " then " ++ show x ++ " else " ++ show y
+  show (Let pat val x) = printf "let %s = %s in %s" (show pat) (show val) (show x)
+  show (If cond x y) = printf "if %s then %s else %s" (show cond) (show x) (show y)
   show (Match x xs) =
     "match " ++ show x ++ " with"
       ++ concatMap
