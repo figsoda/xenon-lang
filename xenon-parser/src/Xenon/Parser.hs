@@ -39,7 +39,7 @@ data Expr
   | Unit
   | Pair Expr Expr
   | List [Expr]
-  | App Expr [Expr]
+  | App Expr Expr
   | Let Expr Expr Expr
   | If Expr Expr Expr
   | Match Expr (NonEmpty (NonEmpty Expr, Maybe Expr, Expr))
@@ -54,7 +54,7 @@ instance Show Expr where
   show Unit = "()"
   show (Pair x y) = printf "(%s,%s)" (show x) (show y)
   show (List x) = show x
-  show (App x xs) = '(' : unwords (map show $ x : xs) ++ ")"
+  show (App x y) = printf "(%s %s)" (show x) (show y)
   show (Let pat val x) = printf "let %s = %s in %s" (show pat) (show val) (show x)
   show (If cond x y) = printf "if %s then %s else %s" (show cond) (show x) (show y)
   show (Match x xs) =
@@ -85,7 +85,7 @@ syms :: Text -> Parser Text
 syms xs = try $ chunk xs <* notFollowedBy sym
 
 op :: String -> Parser (Expr -> Expr -> Expr)
-op xs = syms (pack xs) <* ws $> \x y -> App (Var xs []) [x, y]
+op xs = syms (pack xs) <* ws $> App . App (Var xs []) 
 
 ident :: Parser String
 ident = try $ do
@@ -168,7 +168,4 @@ term opss =
         <|> anySingle
 
 expr :: [[Operator Parser Expr]] -> Parser Expr
-expr opss = makeExprParser (some (term opss <* ws) <&> app) opss
-  where
-    app (x :| []) = x
-    app (x :| xs) = App x xs
+expr opss = makeExprParser (some (term opss <* ws) <&> foldl1 App) opss
