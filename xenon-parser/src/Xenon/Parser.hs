@@ -110,11 +110,11 @@ ident = try $ do
 term :: [[Operator Parser Expr]] -> Parser Expr
 term opss =
   choice
-    [ try (sign <* (char '0' >> char 'B' <|> char 'b')) <*> binary <&> Int,
-      try (sign <* (char '0' >> char 'O' <|> char 'o')) <*> octal <&> Int,
-      try (sign <* (char '0' >> char 'X' <|> char 'x')) <*> hexadecimal <&> Int,
-      try (sign <*> float) <&> Float,
-      try (sign <*> decimal) <&> Int,
+    [ try (signedInt <* (char '0' >> char 'B' <|> char 'b')) <*> binary,
+      try (signedInt <* (char '0' >> char 'O' <|> char 'o')) <*> octal,
+      try (signedInt <* (char '0' >> char 'X' <|> char 'x')) <*> hexadecimal,
+      try (signed Float <*> float),
+      try (signedInt <*> decimal),
       between (char '\'') (char '\'') esc <&> Char,
       char '"' >> manyTill esc (char '"') <&> String,
       chunk "r\"" >> manyTill anySingle (char '"') <&> String,
@@ -144,8 +144,14 @@ term opss =
         pure $ Match val arms
     ]
   where
-    sign :: Num a => Parser (a -> a)
-    sign = char '-' $> negate <|> pure id
+    sign :: Num a => (a -> b) -> (a -> b) -> Parser (a -> b)
+    sign f g = char '-' $> f <|> pure g
+
+    signed :: Num a => (a -> b) -> Parser (a -> b)
+    signed f = sign (f . negate) f
+
+    signedInt :: Parser (Natural -> Expr)
+    signedInt = sign (Int . negate . toInteger) Nat
 
     esc =
       char '\\'
