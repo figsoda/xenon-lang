@@ -8,7 +8,6 @@ import Control.Monad.Combinators.Expr (Operator (..), makeExprParser)
 import Control.Monad.Combinators.NonEmpty (sepBy1, some)
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.Functor (($>), (<&>))
-import Data.List (intercalate)
 import Data.List.NonEmpty (NonEmpty (..))
 import Data.Text (Text, pack)
 import GHC.Exts (fromList)
@@ -38,7 +37,7 @@ data Expr
   | String String
   | Var String [String]
   | Unit
-  | Tuple Expr Expr [Expr]
+  | Pair Expr Expr
   | List [Expr]
   | App Expr [Expr]
   | Let Expr Expr Expr
@@ -53,7 +52,7 @@ instance Show Expr where
   show (String x) = show x
   show (Var x xs) = foldl ((++) . (++ ".")) x xs
   show Unit = "()"
-  show (Tuple x y xs) = printf "(%s,%s,%s)" (show x) (show y) (intercalate "," $ map show xs)
+  show (Pair x y) = printf "(%s,%s)" (show x) (show y)
   show (List x) = show x
   show (App x xs) = '(' : unwords (map show $ x : xs) ++ ")"
   show (Let pat val x) = printf "let %s = %s in %s" (show pat) (show val) (show x)
@@ -123,7 +122,7 @@ term opss =
       between (char '(' <* ws) (char ')') (sepEndBy (expr opss) (char ',' <* ws)) <&> \case
         [] -> Unit
         [x] -> x
-        (x : y : xs) -> Tuple x y xs,
+        xs -> foldr1 Pair xs,
       between (char '[' <* ws) (char ']') (sepEndBy (expr opss) (char ',' <* ws)) <&> List,
       do
         pat <- chunk "let" <* ws >> expr opss
