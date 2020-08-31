@@ -79,8 +79,11 @@ ws = space space1 (skipLineComment "//") (skipBlockComment "/*" "*/")
 sym :: Parser Char
 sym = oneOf ("!#$%&*+-/:<=>@\\^|" :: String)
 
+syms :: Text -> Parser Text
+syms xs = try $ chunk xs <* notFollowedBy sym
+
 op :: String -> Parser (Expr -> Expr -> Expr)
-op xs = (try $ chunk (pack xs) <* notFollowedBy sym <* ws) $> \x y -> App (Var $ xs :| []) [x, y]
+op xs = syms (pack xs) <* ws $> \x y -> App (Var $ xs :| []) [x, y]
 
 ident :: Parser String
 ident = try $ do
@@ -122,7 +125,7 @@ term opss =
       between (char '[' <* ws) (char ']') (sepEndBy (expr opss) (char ',' <* ws)) <&> List,
       do
         pat <- chunk "let" <* ws >> expr opss
-        val <- char '=' <* ws >> expr opss
+        val <- syms "=" <* ws >> expr opss
         x <- chunk "in" <* ws >> expr opss
         pure $ Let pat val x,
       do
@@ -133,9 +136,9 @@ term opss =
       do
         val <- chunk "match" <* ws >> expr opss <* chunk "with" <* ws
         arms <- some $ do
-          pat <- some $ char '|' <* ws >> expr opss
+          pat <- some $ syms "|" <* ws >> expr opss
           guard <- optional $ chunk "when" <* ws >> expr opss
-          x <- chunk "->" <* ws >> expr opss
+          x <- syms "->" <* ws >> expr opss
           pure $ (pat, guard, x)
         pure $ Match val arms
     ]
