@@ -55,7 +55,7 @@ instance Show Expr where
   show Unit = "()"
   show (Tuple x y xs) = printf "(%s,%s,%s)" (show x) (show y) (intercalate "," $ map show xs)
   show (List x) = show x
-  show (App x xs) = '(' : intercalate " " (map show $ x : xs) ++ ")"
+  show (App x xs) = '(' : unwords (map show $ x : xs) ++ ")"
   show (Let pat val x) = printf "let %s = %s in %s" (show pat) (show val) (show x)
   show (If cond x y) = printf "if %s then %s else %s" (show cond) (show x) (show y)
   show (Match x xs) =
@@ -92,7 +92,7 @@ ident :: Parser String
 ident = try $ do
   x <- satisfy $ \x -> isAsciiUpper x || isAsciiLower x
   xs <- many $ satisfy $ \y -> isDigit y || isAsciiUpper y || isAsciiLower y
-  case (x : xs) of
+  case x : xs of
     "else" -> ukw "else"
     "if" -> ukw "if"
     "in" -> ukw "in"
@@ -141,7 +141,7 @@ term opss =
           pat <- some $ syms "|" <* ws >> expr opss
           guard <- optional $ chunk "when" <* ws >> expr opss
           x <- syms "->" <* ws >> expr opss
-          pure $ (pat, guard, x)
+          pure (pat, guard, x)
         pure $ Match val arms
     ]
   where
