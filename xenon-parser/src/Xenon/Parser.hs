@@ -36,7 +36,7 @@ data Expr
   | Float Double
   | Char Char
   | String String
-  | Var (NonEmpty String)
+  | Var String [String]
   | Unit
   | Tuple Expr Expr [Expr]
   | List [Expr]
@@ -51,7 +51,7 @@ instance Show Expr where
   show (Float x) = show x
   show (Char x) = show x
   show (String x) = show x
-  show (Var x) = foldl1 ((++) . (++ ".")) x
+  show (Var x xs) = foldl ((++) . (++ ".")) x xs
   show Unit = "()"
   show (Tuple x y xs) = printf "(%s,%s,%s)" (show x) (show y) (intercalate "," $ map show xs)
   show (List x) = show x
@@ -86,7 +86,7 @@ syms :: Text -> Parser Text
 syms xs = try $ chunk xs <* notFollowedBy sym
 
 op :: String -> Parser (Expr -> Expr -> Expr)
-op xs = syms (pack xs) <* ws $> \x y -> App (Var $ xs :| []) [x, y]
+op xs = syms (pack xs) <* ws $> \x y -> App (Var xs []) [x, y]
 
 ident :: Parser String
 ident = try $ do
@@ -119,7 +119,7 @@ term opss =
       between (char '\'') (char '\'') esc <&> Char,
       char '"' >> manyTill esc (char '"') <&> String,
       chunk "r\"" >> manyTill anySingle (char '"') <&> String,
-      sepBy1 ident (char '.') <&> Var,
+      sepBy1 ident (char '.') <&> \(x :| xs) -> Var x xs,
       between (char '(' <* ws) (char ')') (sepEndBy (expr opss) (char ',' <* ws)) <&> \case
         [] -> Unit
         [x] -> x
