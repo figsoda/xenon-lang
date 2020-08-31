@@ -59,10 +59,12 @@ instance Show Expr where
   show (Let pat val x) = printf "let %s = %s in %s" (show pat) (show val) (show x)
   show (If cond x y) = printf "if %s then %s else %s" (show cond) (show x) (show y)
   show (Match x xs) =
-    "match " ++ show x ++ " with"
+    "match " ++ show x
       ++ concatMap
-        ( \(pats, guard, val) ->
-            concatMap ((" | " ++) . show) pats ++ maybe "" ((" when " ++) . show) guard ++ " -> " ++ show val
+        ( \(pats, guard, val) -> printf "\n%s%s -> %s"
+            (concatMap (("| " ++) . show) pats)
+            (maybe "" ((" when " ++) . show) guard)
+            (show val)
         )
         xs
 
@@ -98,7 +100,6 @@ ident = try $ do
     "match" -> ukw "match"
     "then" -> ukw "then"
     "when" -> ukw "when"
-    "with" -> ukw "with"
     ys -> pure ys
   where
     ukw :: String -> Parser String
@@ -135,7 +136,7 @@ term opss =
         y <- chunk "else" <* ws >> expr opss
         pure $ If cond x y,
       do
-        val <- chunk "match" <* ws >> expr opss <* chunk "with" <* ws
+        val <- chunk "match" <* ws >> expr opss
         arms <- some $ do
           pat <- some $ syms "|" <* ws >> expr opss
           guard <- optional $ chunk "when" <* ws >> expr opss
