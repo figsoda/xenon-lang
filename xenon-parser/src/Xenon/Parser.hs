@@ -1,6 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections #-}
 
 module Xenon.Parser (test) where
 
@@ -124,7 +123,8 @@ term opss =
       do
         pat <- chunk "let" <* ws >> expr opss
         val <- char '=' <* ws >> expr opss
-        chunk "in" <* ws >> expr opss <&> Let pat val,
+        x <- chunk "in" <* ws >> expr opss
+        pure $ Let pat val x,
       do
         cond <- chunk "if" <* ws >> expr opss
         x <- chunk "then" <* ws >> expr opss
@@ -135,7 +135,8 @@ term opss =
         arms <- some $ do
           pat <- some $ char '|' <* ws >> expr opss
           guard <- optional $ chunk "when" <* ws >> expr opss
-          chunk "->" <* ws >> expr opss <&> (pat,guard,)
+          x <- chunk "->" <* ws >> expr opss
+          pure $ (pat, guard, x)
         pure $ Match val arms
     ]
   where
