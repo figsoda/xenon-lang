@@ -38,7 +38,7 @@ data Expr
   | String String
   | Var (NonEmpty String)
   | Unit
-  | Tuple [Expr]
+  | Tuple Expr Expr [Expr]
   | List [Expr]
   | App Expr [Expr]
   | Let Expr Expr Expr
@@ -53,7 +53,7 @@ instance Show Expr where
   show (String x) = show x
   show (Var x) = foldl1 ((++) . (++ ".")) x
   show Unit = "()"
-  show (Tuple x) = '(' : intercalate "," (map show x) ++ ")"
+  show (Tuple x y xs) = printf "(%s,%s,%s)" (show x) (show y) (intercalate "," $ map show xs)
   show (List x) = show x
   show (App x xs) = '(' : intercalate " " (map show $ x : xs) ++ ")"
   show (Let pat val x) = printf "let %s = %s in %s" (show pat) (show val) (show x)
@@ -122,7 +122,7 @@ term opss =
       between (char '(' <* ws) (char ')') (sepEndBy (expr opss) (char ',' <* ws)) <&> \case
         [] -> Unit
         [x] -> x
-        xs -> Tuple xs,
+        (x : y : xs) -> Tuple x y xs,
       between (char '[' <* ws) (char ']') (sepEndBy (expr opss) (char ',' <* ws)) <&> List,
       do
         pat <- chunk "let" <* ws >> expr opss
