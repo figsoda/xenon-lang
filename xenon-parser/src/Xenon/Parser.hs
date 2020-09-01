@@ -3,8 +3,9 @@
 
 module Xenon.Parser ( test ) where
 
+import Control.Applicative ( liftA2 )
 import Control.Monad.Combinators
-  ( (<|>), between, choice, many, manyTill, sepEndBy )
+  ( (<|>), between, choice, many, manyTill, optional, sepEndBy )
 import Control.Monad.Combinators.Expr ( Operator(..), makeExprParser )
 import Control.Monad.Combinators.NonEmpty ( sepBy1, some )
 import Data.Char ( isAsciiLower, isAsciiUpper, isDigit )
@@ -16,10 +17,10 @@ import Numeric.Natural ( Natural )
 import System.IO ( hFlush, stdout )
 import Text.Megaparsec
   ( Parsec, ShowErrorComponent(..), anySingle, chunk, customFailure, eof
-  , failure, notFollowedBy, oneOf, optional, parseTest, satisfy, try )
+  , failure, notFollowedBy, oneOf, parseTest, satisfy, takeWhileP, try )
 import Text.Megaparsec.Char ( char, space1 )
-import Text.Megaparsec.Char.Lexer ( binary, decimal, float, hexadecimal, octal
-                                  , skipBlockComment, skipLineComment, space )
+import Text.Megaparsec.Char.Lexer
+  ( binary, decimal, float, hexadecimal, octal, space )
 import Text.Megaparsec.Error ( ErrorItem(..) )
 import Xenon.Ast ( Expr(..) )
 
@@ -33,6 +34,11 @@ instance ShowErrorComponent ParseError where
 
 type Parser = Parsec ParseError Text
 
+infixl 1 <@>
+
+(<@>) :: Applicative f => f a -> f b -> f ()
+(<@>) = liftA2 (\_ _ -> ())
+
 test :: IO ()
 test = do
   putStr "> "
@@ -45,7 +51,9 @@ test = do
   test
 
 ws :: Parser ()
-ws = space space1 (skipLineComment "//") (skipBlockComment "/*" "*/")
+ws
+  = space space1 (syms "//" <@> takeWhileP Nothing (/= '\n'))
+  (syms "/*" <@> manyTill anySingle "*/")
 
 sym :: Parser Char
 sym = oneOf ("!#$%&*+-/:<=>@\\^|" :: String)
