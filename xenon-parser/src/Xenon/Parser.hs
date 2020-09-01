@@ -57,15 +57,14 @@ instance Show Expr where
   show (App x y) = printf "(%s %s)" (show x) (show y)
   show (Let pat val x) = printf "let %s = %s in %s" (show pat) (show val) (show x)
   show (If cond x y) = printf "if %s then %s else %s" (show cond) (show x) (show y)
-  show (Match x xs) =
-    "match " ++ show x
-      ++ concatMap
-        ( \(pats, guard, val) -> printf "\n%s%s -> %s"
-            (concatMap (("| " ++) . show) pats)
-            (maybe "" ((" when " ++) . show) guard)
-            (show val)
-        )
-        xs
+  show (Match x xs) = "match " ++ show x ++ concatMap showArm xs
+    where
+      showArm (pats, guard, val) =
+        printf
+          "\n%s%s -> %s"
+          (concatMap (("| " ++) . show) pats)
+          (maybe "" ((" when " ++) . show) guard)
+          (show val)
 
 test :: IO ()
 test = do
@@ -85,7 +84,7 @@ syms :: Text -> Parser Text
 syms xs = try $ chunk xs <* notFollowedBy sym
 
 op :: String -> Parser (Expr -> Expr -> Expr)
-op xs = syms (pack xs) <* ws $> App . App (Var xs []) 
+op xs = syms (pack xs) <* ws $> App . App (Var xs [])
 
 ident :: Parser String
 ident = try $ do
