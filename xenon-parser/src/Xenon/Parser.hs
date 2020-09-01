@@ -17,7 +17,7 @@ import Numeric.Natural ( Natural )
 import System.IO ( hFlush, stdout )
 import Text.Megaparsec
   ( Parsec, ShowErrorComponent(..), anySingle, chunk, customFailure, eof
-  , failure, notFollowedBy, oneOf, parseTest, satisfy, takeWhileP, try )
+  , failure, notFollowedBy, oneOf, parseTest, satisfy, takeP, takeWhileP, try )
 import Text.Megaparsec.Char ( char, space1 )
 import Text.Megaparsec.Char.Lexer
   ( binary, decimal, float, hexadecimal, octal, space )
@@ -93,7 +93,8 @@ term opss
   , try (signedInt <*> decimal)
   , between (char '\'') (char '\'') esc <&> Char
   , char '"' >> manyTill esc (char '"') <&> String
-  , chunk "r\"" >> takeWhileP Nothing (== '"') <&> String . unpack
+  , chunk "r\"" >> takeWhileP Nothing (/= '"') <* takeP Nothing 1
+      <&> String . unpack
   , sepBy1 ident (char '.') <&> \(x :| xs) -> Var x xs
   , between (char '(' <* ws) (char ')') (sepEndBy (expr opss) (char ',' <* ws))
       <&> \case
