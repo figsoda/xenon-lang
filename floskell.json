@@ -1,0 +1,105 @@
+{
+  "formatting": {
+    "align": {
+      "case": false,
+      "class": false,
+      "import-module": false,
+      "import-spec": false,
+      "let-binds": false,
+      "matches": false,
+      "record-fieds": false,
+      "where": false
+    },
+    "group": {
+      "(": {
+        "force-linebreak": false,
+        "linebreaks": "after",
+        "spaces": "none"
+      },
+      "( in other": {
+        "force-linebreak": true,
+        "linebreaks": "after",
+        "spaces": "both"
+      },
+      "[": {
+        "force-linebreak": true,
+        "linebreaks": "after",
+        "spaces": "both"
+      },
+      "[ in pattern": {
+        "force-linebreak": false,
+        "linebreaks": "after",
+        "spaces": "none"
+      },
+      "[ in type": {
+        "force-linebreak": false,
+        "linebreaks": "after",
+        "spaces": "none"
+      }
+    },
+    "indent": {
+      "case": "indent-by 2",
+      "class": "indent-by 2",
+      "deriving": 2,
+      "do": "indent-by 2",
+      "export-spec-list": "indent-by 2",
+      "if": "indent-by 2",
+      "import-spec-list": "indent-by 2",
+      "let": "indent-by 2",
+      "let-binds": "indent-by 2",
+      "let-in": "indent-by 2",
+      "multi-if": "indent-by 2",
+      "onside": 2,
+      "typesig": "indent-by 2",
+      "where": 2,
+      "where-binds": "indent-by 2"
+    },
+    "layout": {
+      "app": "flex",
+      "con-decls": "try-oneline",
+      "declaration": "try-oneline",
+      "export-sepc-list": "flex",
+      "if": "try-oneline",
+      "import-spec-list": "flex",
+      "infix-app": "try-oneline",
+      "let": "try-oneline",
+      "list-comp": "try-oneline",
+      "record": "try-oneline",
+      "type": "try-oneline"
+    },
+    "op": {
+      "-> in expression": {
+        "force-linebreak": false,
+        "linebreaks": "after",
+        "spaces": "both"
+      },
+      ",": {
+        "force-linebreak": false,
+        "linebreaks": "before",
+        "spaces": "after"
+      },
+      "= in other": {
+        "force-linebreak": false,
+        "linebreaks": "before",
+        "spaces": "both"
+      }
+    },
+    "options": {
+      "align-sum-type-decl": false,
+      "flexible-oneline": true,
+      "preserve-vertical-space": true,
+      "sort-import-lists": true,
+      "sort-imports": [
+        {
+          "order": "sorted",
+          "prefixes": [
+            ""
+          ]
+        }
+      ],
+      "sort-pragmas": true,
+      "split-language-pragmas": true
+    }
+  },
+  "style": "base"
+}
