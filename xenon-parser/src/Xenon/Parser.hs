@@ -11,7 +11,7 @@ import Control.Monad.Combinators.NonEmpty ( sepBy1, some )
 import Data.Char ( isAsciiLower, isAsciiUpper, isDigit )
 import Data.Functor ( ($>), (<&>) )
 import Data.List.NonEmpty ( NonEmpty(..) )
-import Data.Text ( Text, pack )
+import Data.Text ( Text, pack, unpack )
 import GHC.Exts ( fromList )
 import Numeric.Natural ( Natural )
 import System.IO ( hFlush, stdout )
@@ -93,7 +93,7 @@ term opss
   , try (signedInt <*> decimal)
   , between (char '\'') (char '\'') esc <&> Char
   , char '"' >> manyTill esc (char '"') <&> String
-  , chunk "r\"" >> manyTill anySingle (char '"') <&> String
+  , chunk "r\"" >> takeWhileP Nothing (== '"') <&> String . unpack
   , sepBy1 ident (char '.') <&> \(x :| xs) -> Var x xs
   , between (char '(' <* ws) (char ')') (sepEndBy (expr opss) (char ',' <* ws))
       <&> \case
