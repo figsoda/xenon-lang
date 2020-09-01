@@ -1,0 +1,13 @@
+name: xenon-ast
+version: 0.1.0.0
+github: figsoda/xenon-lang
+license: MPL-2.0
+author: figsoda
+
+description: Abstract syntax tree for xenon programming language
+
+dependencies:
+  - base
+
+library:
+  source-dirs: src
