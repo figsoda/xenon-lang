@@ -23,15 +23,15 @@ import Text.Megaparsec.Char.Lexer ( binary, decimal, float, hexadecimal, octal
 import Text.Megaparsec.Error ( ErrorItem(..) )
 import Text.Printf ( printf )
 
-data Error = InvalidUnicodeEscape
+data ParseError = InvalidUnicodeEscape
   deriving ( Eq, Ord )
 
-instance ShowErrorComponent Error where
+instance ShowErrorComponent ParseError where
   showErrorComponent = \case
     InvalidUnicodeEscape ->
       "invalid unicode escape, unicode escape must be at most 0x10ffff"
 
-type Parser = Parsec Error Text
+type Parser = Parsec ParseError Text
 
 data Expr
   = Int Integer
