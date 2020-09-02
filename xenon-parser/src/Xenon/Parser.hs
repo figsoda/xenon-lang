@@ -17,7 +17,7 @@ import Numeric.Natural ( Natural )
 import Text.Megaparsec
   ( Parsec, ShowErrorComponent(..), anySingle, chunk, customFailure, eof
   , failure, hidden, notFollowedBy, oneOf, satisfy, takeP, takeWhileP, try )
-import Text.Megaparsec.Char ( char, space1 )
+import Text.Megaparsec.Char ( char, space, space1 )
 import Text.Megaparsec.Char.Lexer ( binary, decimal, float, hexadecimal, octal )
 import Text.Megaparsec.Error ( ErrorItem(..) )
 import Xenon.Ast ( Expr(..) )
@@ -88,8 +88,30 @@ term opss
   , try (signedInt <* (char '0' >> char 'X' <|> char 'x')) <*> hexadecimal
   , try (sign (Float . negate) Float <*> float)
   , try (signedInt <*> decimal)
-  , between (char '\'') (char '\'') esc <&> Char
-  , char '"' >> manyTill esc (char '"') <&> String
+  , between (char '\'') (char '\'')
+      (char '\\'
+       *> choice [ char '0' $> '\0'
+                 , char 'n' $> '\n'
+                 , char 'r' $> '\r'
+                 , char 't' $> '\t'
+                 , uesc
+                 , anySingle
+                 ]
+       <|> anySingle)
+      <&> Char
+  , char '"'
+      >> manyTill
+      (char '\\'
+       *> choice [ char '0' $> '\0'
+                 , char 'n' $> '\n'
+                 , char 'r' $> '\r'
+                 , char 't' $> '\t'
+                 , char '\n' >> space $> '\n'
+                 , uesc
+                 , anySingle
+                 ]
+       <|> anySingle) (char '"')
+      <&> String
   , chunk "r\"" >> takeWhileP Nothing (/= '"') <* takeP Nothing 1
       <&> String . unpack
   , sepBy1 ident (char '.') <&> \(x :| xs) -> Var x xs
@@ -126,21 +148,12 @@ term opss
     signedInt :: Parser (Natural -> Expr)
     signedInt = sign (Int . negate . toInteger) Nat
 
-    esc
-      = char '\\'
-      *> choice
-      [ char '0' $> '\0'
-      , char 'n' $> '\n'
-      , char 'r' $> '\r'
-      , char 't' $> '\t'
-      , do
-          x <- between (char '{') (char '}') hexadecimal
-          if x < 0x110000
-            then pure $ toEnum x
-            else customFailure InvalidUnicodeEscape
-      , anySingle
-      ]
-      <|> anySingle
+    uesc :: Parser Char
+    uesc = do
+      x <- between (char '{') (char '}') hexadecimal
+      if x < 0x110000
+        then pure $ toEnum x
+        else customFailure InvalidUnicodeEscape
 
 expr :: [[Operator Parser Expr]] -> Parser Expr
 expr opss = makeExprParser (some (term opss <* ws) <&> foldl1 App) opss
