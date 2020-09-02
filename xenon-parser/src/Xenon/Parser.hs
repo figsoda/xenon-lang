@@ -19,8 +19,7 @@ import Text.Megaparsec
   ( Parsec, ShowErrorComponent(..), anySingle, chunk, customFailure, eof
   , failure, notFollowedBy, oneOf, parseTest, satisfy, takeP, takeWhileP, try )
 import Text.Megaparsec.Char ( char, space1 )
-import Text.Megaparsec.Char.Lexer
-  ( binary, decimal, float, hexadecimal, octal, space )
+import Text.Megaparsec.Char.Lexer ( binary, decimal, float, hexadecimal, octal )
 import Text.Megaparsec.Error ( ErrorItem(..) )
 import Xenon.Ast ( Expr(..) )
 
@@ -34,7 +33,7 @@ instance ShowErrorComponent ParseError where
 
 type Parser = Parsec ParseError Text
 
-infixl 1 <@>
+infixl 5 <@>
 
 (<@>) :: Applicative f => f a -> f b -> f ()
 (<@>) = liftA2 (\_ _ -> ())
@@ -52,8 +51,9 @@ test = do
 
 ws :: Parser ()
 ws
-  = space space1 (syms "//" <@> takeWhileP Nothing (/= '\n'))
-  (syms "/*" <@> manyTill anySingle "*/")
+  = space1
+  <|> syms "//" <@> takeWhileP Nothing (/= '\n')
+  <|> syms "/*" <@> manyTill anySingle "*/"
 
 sym :: Parser Char
 sym = oneOf ("!#$%&*+-/:<=>@\\^|" :: String)
