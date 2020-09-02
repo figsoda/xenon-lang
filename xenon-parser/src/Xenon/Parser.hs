@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Xenon.Parser ( expr, ident, term, test ) where
+module Xenon.Parser ( Parser, expr, ident, term, test ) where
 
 import Control.Applicative ( liftA2 )
 import Control.Monad.Combinators
@@ -14,10 +14,9 @@ import Data.List.NonEmpty ( NonEmpty(..) )
 import Data.Text ( Text, pack, unpack )
 import GHC.Exts ( fromList )
 import Numeric.Natural ( Natural )
-import System.IO ( hFlush, stdout )
 import Text.Megaparsec
   ( Parsec, ShowErrorComponent(..), anySingle, chunk, customFailure, eof
-  , failure, notFollowedBy, oneOf, parseTest, satisfy, takeP, takeWhileP, try )
+  , failure, notFollowedBy, oneOf, satisfy, takeP, takeWhileP, try )
 import Text.Megaparsec.Char ( char, space1 )
 import Text.Megaparsec.Char.Lexer ( binary, decimal, float, hexadecimal, octal )
 import Text.Megaparsec.Error ( ErrorItem(..) )
@@ -38,16 +37,12 @@ infixl 5 <@>
 (<@>) :: Applicative f => f a -> f b -> f ()
 (<@>) = liftA2 (\_ _ -> ())
 
-test :: IO ()
-test = do
-  putStr "> "
-  hFlush stdout
-  xs <- getLine
-  parseTest (expr [ [ InfixL $ op "*", InfixL $ op "/" ]
-                  , [ InfixL $ op "+", InfixL $ op "-" ]
-                  ]
-             <* eof) (pack xs)
-  test
+test :: Parser Expr
+test
+  = expr [ [ InfixL $ op "*", InfixL $ op "/" ]
+         , [ InfixL $ op "+", InfixL $ op "-" ]
+         ]
+  <* eof
 
 ws :: Parser ()
 ws
