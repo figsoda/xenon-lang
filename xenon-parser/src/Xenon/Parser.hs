@@ -5,7 +5,7 @@ module Xenon.Parser ( Parser, expr, ident, term, test ) where
 
 import Control.Applicative ( liftA2 )
 import Control.Monad.Combinators
-  ( (<|>), between, choice, many, manyTill, optional, sepEndBy )
+  ( (<|>), between, choice, many, manyTill, optional, sepEndBy, skipMany )
 import Control.Monad.Combinators.Expr ( Operator(..), makeExprParser )
 import Control.Monad.Combinators.NonEmpty ( sepBy1, some )
 import Data.Char ( isAsciiLower, isAsciiUpper, isDigit )
@@ -16,7 +16,7 @@ import GHC.Exts ( fromList )
 import Numeric.Natural ( Natural )
 import Text.Megaparsec
   ( Parsec, ShowErrorComponent(..), anySingle, chunk, customFailure, eof
-  , failure, notFollowedBy, oneOf, satisfy, takeP, takeWhileP, try )
+  , failure, hidden, notFollowedBy, oneOf, satisfy, takeP, takeWhileP, try )
 import Text.Megaparsec.Char ( char, space1 )
 import Text.Megaparsec.Char.Lexer ( binary, decimal, float, hexadecimal, octal )
 import Text.Megaparsec.Error ( ErrorItem(..) )
@@ -46,7 +46,9 @@ test
 
 ws :: Parser ()
 ws
-  = space1
+  = hidden
+  $ skipMany
+  $ space1
   <|> syms "//" <@> takeWhileP Nothing (/= '\n')
   <|> syms "/*" <@> manyTill anySingle "*/"
 
