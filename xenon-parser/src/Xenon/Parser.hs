@@ -5,7 +5,7 @@ module Xenon.Parser ( Parser, expr, ident, term, test ) where
 
 import Control.Applicative ( liftA2 )
 import Control.Monad.Combinators
-  ( (<|>), between, choice, many, manyTill, optional, sepEndBy, skipMany )
+  ( (<|>), choice, many, manyTill, optional, sepEndBy, skipMany )
 import Control.Monad.Combinators.Expr ( Operator(..), makeExprParser )
 import Control.Monad.Combinators.NonEmpty ( sepBy1, some )
 import Data.Char ( isAsciiLower, isAsciiUpper, isDigit )
@@ -90,20 +90,20 @@ term opss
       , try (signedInt <* (char '0' >> char 'X' <|> char 'x')) <*> hexadecimal
       , try (sign (Float . negate) Float <*> float)
       , try (signedInt <*> decimal)
-      , between
-            (char '\'')
-            (char '\'')
-            (char '\\'
-             *> choice
-                 [ char '0' $> '\0'
-                 , char 'n' $> '\n'
-                 , char 'r' $> '\r'
-                 , char 't' $> '\t'
-                 , uesc
-                 , anySingle
-                 ]
-             <|> anySingle)
-          <&> Char
+      , do
+          char '\''
+          x <- char '\\'
+            *> choice
+                [ char '0' $> '\0'
+                , char 'n' $> '\n'
+                , char 'r' $> '\r'
+                , char 't' $> '\t'
+                , uesc
+                , anySingle
+                ]
+            <|> anySingle
+          char '\''
+          pure $ Char x
       , char '"'
           >> manyTill
               (char '\\'
@@ -122,19 +122,19 @@ term opss
       , chunk "r\"" >> takeWhileP Nothing (/= '"') <* takeP Nothing 1
           <&> String . unpack
       , sepBy1 ident (char '.') <&> \(x :| xs) -> Var x xs
-      , between
-            (char '(' <* ws)
-            (char ')')
-            (sepEndBy (expr opss) (char ',' <* ws))
-          <&> \case
+      , do
+          char '(' <* ws
+          xs <- sepEndBy (expr opss) (char ',' <* ws)
+          char ')'
+          pure $ case xs of
             [] -> Unit
             [x] -> x
-            xs -> foldr1 Pair xs
-      , between
-            (char '[' <* ws)
-            (char ']')
-            (sepEndBy (expr opss) (char ',' <* ws))
-          <&> List
+            _ -> foldr1 Pair xs
+      , do
+          char '[' <* ws
+          xs <- sepEndBy (expr opss) (char ',' <* ws)
+          char ']'
+          pure $ List xs
       , do
           pat <- chunk "let" <* ws >> expr opss
           val <- syms "=" <* ws >> expr opss
@@ -163,7 +163,7 @@ term opss
 
     uesc :: Parser Char
     uesc = do
-      x <- between (char '{') (char '}') hexadecimal
+      x <- char '{' >> hexadecimal <* char '}'
       if x < 0x110000
         then pure $ toEnum x
         else customFailure InvalidUnicodeEscape
