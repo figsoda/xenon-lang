@@ -27,8 +27,8 @@ data ParseError = InvalidUnicodeEscape
 
 instance ShowErrorComponent ParseError where
   showErrorComponent = \case
-    InvalidUnicodeEscape ->
-      "invalid unicode escape, unicode escape must be at most 0x10ffff"
+    InvalidUnicodeEscape
+     -> "invalid unicode escape, unicode escape must be at most 0x10ffff"
 
 type Parser = Parsec ParseError Text
 
@@ -39,9 +39,10 @@ infixl 5 <@>
 
 test :: Parser Expr
 test
-  = expr [ [ InfixL $ op "*", InfixL $ op "/" ]
-         , [ InfixL $ op "+", InfixL $ op "-" ]
-         ]
+  = expr
+      [ [ InfixL $ op "*", InfixL $ op "/" ]
+      , [ InfixL $ op "+", InfixL $ op "-" ]
+      ]
   <* eof
 
 ws :: Parser ()
@@ -77,70 +78,82 @@ ident = try $ do
   where
     ukw :: String -> Parser String
     ukw xs
-      = failure (Just $ Label $ fromList ("keyword " ++ show xs))
-      (fromList [ Label $ fromList "identifier" ])
+      = failure
+          (Just $ Label $ fromList ("keyword " ++ show xs))
+          (fromList [ Label $ fromList "identifier" ])
 
 term :: [[Operator Parser Expr]] -> Parser Expr
 term opss
   = choice
-  [ try (signedInt <* (char '0' >> char 'B' <|> char 'b')) <*> binary
-  , try (signedInt <* (char '0' >> char 'O' <|> char 'o')) <*> octal
-  , try (signedInt <* (char '0' >> char 'X' <|> char 'x')) <*> hexadecimal
-  , try (sign (Float . negate) Float <*> float)
-  , try (signedInt <*> decimal)
-  , between (char '\'') (char '\'')
-      (char '\\'
-       *> choice [ char '0' $> '\0'
+      [ try (signedInt <* (char '0' >> char 'B' <|> char 'b')) <*> binary
+      , try (signedInt <* (char '0' >> char 'O' <|> char 'o')) <*> octal
+      , try (signedInt <* (char '0' >> char 'X' <|> char 'x')) <*> hexadecimal
+      , try (sign (Float . negate) Float <*> float)
+      , try (signedInt <*> decimal)
+      , between
+            (char '\'')
+            (char '\'')
+            (char '\\'
+             *> choice
+                 [ char '0' $> '\0'
                  , char 'n' $> '\n'
                  , char 'r' $> '\r'
                  , char 't' $> '\t'
                  , uesc
                  , anySingle
                  ]
-       <|> anySingle)
-      <&> Char
-  , char '"'
-      >> manyTill
-      (char '\\'
-       *> choice [ char '0' $> '\0'
-                 , char 'n' $> '\n'
-                 , char 'r' $> '\r'
-                 , char 't' $> '\t'
-                 , char '\n' >> space $> '\n'
-                 , uesc
-                 , anySingle
-                 ]
-       <|> anySingle) (char '"')
-      <&> String
-  , chunk "r\"" >> takeWhileP Nothing (/= '"') <* takeP Nothing 1
-      <&> String . unpack
-  , sepBy1 ident (char '.') <&> \(x :| xs) -> Var x xs
-  , between (char '(' <* ws) (char ')') (sepEndBy (expr opss) (char ',' <* ws))
-      <&> \case
-        [] -> Unit
-        [x] -> x
-        xs -> foldr1 Pair xs
-  , between (char '[' <* ws) (char ']') (sepEndBy (expr opss) (char ',' <* ws))
-      <&> List
-  , do
-      pat <- chunk "let" <* ws >> expr opss
-      val <- syms "=" <* ws >> expr opss
-      x <- chunk "in" <* ws >> expr opss
-      pure $ Let pat val x
-  , do
-      cond <- chunk "if" <* ws >> expr opss
-      x <- chunk "then" <* ws >> expr opss
-      y <- chunk "else" <* ws >> expr opss
-      pure $ If cond x y
-  , do
-      val <- chunk "match" <* ws >> expr opss
-      arms <- some $ do
-        pat <- some $ syms "|" <* ws >> expr opss
-        guard <- optional $ chunk "when" <* ws >> expr opss
-        x <- syms "->" <* ws >> expr opss
-        pure (pat, guard, x)
-      pure $ Match val arms
-  ]
+             <|> anySingle)
+          <&> Char
+      , char '"'
+          >> manyTill
+              (char '\\'
+               *> choice
+                   [ char '0' $> '\0'
+                   , char 'n' $> '\n'
+                   , char 'r' $> '\r'
+                   , char 't' $> '\t'
+                   , char '\n' >> space $> '\n'
+                   , uesc
+                   , anySingle
+                   ]
+               <|> anySingle)
+              (char '"')
+          <&> String
+      , chunk "r\"" >> takeWhileP Nothing (/= '"') <* takeP Nothing 1
+          <&> String . unpack
+      , sepBy1 ident (char '.') <&> \(x :| xs) -> Var x xs
+      , between
+            (char '(' <* ws)
+            (char ')')
+            (sepEndBy (expr opss) (char ',' <* ws))
+          <&> \case
+            [] -> Unit
+            [x] -> x
+            xs -> foldr1 Pair xs
+      , between
+            (char '[' <* ws)
+            (char ']')
+            (sepEndBy (expr opss) (char ',' <* ws))
+          <&> List
+      , do
+          pat <- chunk "let" <* ws >> expr opss
+          val <- syms "=" <* ws >> expr opss
+          x <- chunk "in" <* ws >> expr opss
+          pure $ Let pat val x
+      , do
+          cond <- chunk "if" <* ws >> expr opss
+          x <- chunk "then" <* ws >> expr opss
+          y <- chunk "else" <* ws >> expr opss
+          pure $ If cond x y
+      , do
+          val <- chunk "match" <* ws >> expr opss
+          arms <- some $ do
+            pat <- some $ syms "|" <* ws >> expr opss
+            guard <- optional $ chunk "when" <* ws >> expr opss
+            x <- syms "->" <* ws >> expr opss
+            pure (pat, guard, x)
+          pure $ Match val arms
+      ]
   where
     sign :: Num a => (a -> b) -> (a -> b) -> Parser (a -> b)
     sign f g = char '-' $> f <|> pure g

@@ -55,7 +55,7 @@
       "where-binds": "indent-by 2"
     },
     "layout": {
-      "app": "flex",
+      "app": "try-oneline",
       "con-decls": "try-oneline",
       "declaration": "try-oneline",
       "export-sepc-list": "flex",
