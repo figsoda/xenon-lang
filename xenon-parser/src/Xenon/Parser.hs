@@ -64,8 +64,9 @@ op xs = syms (pack xs) <* ws $> App . App (Var xs [])
 
 ident :: Parser String
 ident = try $ do
-  x <- satisfy $ \x -> isAsciiUpper x || isAsciiLower x
-  xs <- many $ satisfy $ \y -> isDigit y || isAsciiUpper y || isAsciiLower y
+  x <- satisfy $ \x -> x == '_' || isAsciiUpper x || isAsciiLower x
+  xs <- many $ satisfy $ \y ->
+    y == '_' || isDigit y || isAsciiUpper y || isAsciiLower y
   case x : xs of
     "else" -> ukw "else"
     "if" -> ukw "if"
