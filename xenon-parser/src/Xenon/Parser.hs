@@ -137,10 +137,14 @@ term opss
           char ']'
           pure $ List xs
       , do
-          pat <- chunk "let" <* ws >> expr opss
-          val <- syms "=" <* ws >> expr opss
+          chunk "let" <* ws
+          xs <- flip sepEndBy (char ',' <* ws) $ do
+            pat <- expr opss
+            syms "=" <* ws
+            val <- expr opss
+            pure (pat, val)
           x <- chunk "in" <* ws >> expr opss
-          pure $ Let pat val x
+          pure $ Let xs x
       , do
           cond <- chunk "if" <* ws >> expr opss
           x <- chunk "then" <* ws >> expr opss
