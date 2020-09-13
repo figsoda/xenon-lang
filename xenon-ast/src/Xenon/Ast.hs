@@ -1,5 +1,6 @@
 module Xenon.Ast ( Expr(..) ) where
 
+import Data.List ( intercalate )
 import Data.List.NonEmpty ( NonEmpty(..) )
 import Numeric.Natural ( Natural )
 import Text.Printf ( printf )
@@ -15,7 +16,7 @@ data Expr
   | Pair Expr Expr
   | List [Expr]
   | App Expr Expr
-  | Let Expr Expr Expr
+  | Let [(Expr, Expr)] Expr
   | If Expr Expr Expr
   | Match Expr (NonEmpty (NonEmpty Expr, Maybe Expr, Expr))
 
@@ -30,12 +31,19 @@ instance Show Expr where
   show (Pair x y) = printf "(%s,%s)" (show x) (show y)
   show (List x) = show x
   show (App x y) = printf "(%s %s)" (show x) (show y)
-  show (Let pat val x)
-    = printf "let %s = %s in %s" (show pat) (show val) (show x)
+  show (Let xs x)
+    = printf
+        "let %s in %s"
+        (intercalate ", "
+         $ map (\(pat, val) -> printf "%s = %s" (show pat) (show val)) xs)
+        (show x)
   show (If cond x y)
     = printf "if %s then %s else %s" (show cond) (show x) (show y)
   show (Match x xs) = "match " ++ show x ++ concatMap showArm xs
     where
       showArm (pats, guard, val)
-        = printf "\n%s%s -> %s" (concatMap (("| " ++) . show) pats)
-        (maybe "" ((" when " ++) . show) guard) (show val)
+        = printf
+            "\n%s%s -> %s"
+            (concatMap (("| " ++) . show) pats)
+            (maybe "" ((" when " ++) . show) guard)
+            (show val)
