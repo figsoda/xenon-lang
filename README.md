@@ -1,2 +1,2 @@
-# xenon-lang
+# [WIP] xenon-lang
 Xenon programming language

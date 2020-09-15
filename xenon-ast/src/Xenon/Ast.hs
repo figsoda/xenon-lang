@@ -1,4 +1,4 @@
-module Xenon.Ast ( Expr(..) ) where
+module Xenon.Ast ( Expr(..), FnDef(..) ) where
 
 import Data.List ( intercalate )
 import Data.List.NonEmpty ( NonEmpty(..) )
@@ -47,3 +47,5 @@ instance Show Expr where
             (concatMap (("| " ++) . show) pats)
             (maybe "" ((" when " ++) . show) guard)
             (show val)
+
+data FnDef = FnDef { ty :: Expr }

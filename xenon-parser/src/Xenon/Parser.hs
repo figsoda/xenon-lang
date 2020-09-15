@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Xenon.Parser ( Parser, expr, ident, term, test ) where
+module Xenon.Parser ( Parser, expr, fndef, ident, term, test ) where
 
 import Control.Applicative ( liftA2 )
 import Control.Monad.Combinators
@@ -20,7 +20,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char ( char, space, space1 )
 import Text.Megaparsec.Char.Lexer ( binary, decimal, float, hexadecimal, octal )
 import Text.Megaparsec.Error ( ErrorItem(..) )
-import Xenon.Ast ( Expr(..) )
+import Xenon.Ast ( Expr(..), FnDef(..) )
 
 data ParseError = InvalidUnicodeEscape
   deriving ( Eq, Ord )
@@ -175,3 +175,6 @@ term opss
 
 expr :: [[Operator Parser Expr]] -> Parser Expr
 expr opss = makeExprParser (some (term opss <* ws) <&> foldl1 App) opss
+
+fndef :: [[Operator Parser Expr]] -> FnDef
+fndef = undefined
