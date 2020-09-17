@@ -176,6 +176,14 @@ term opss
 expr :: [[Operator Parser Expr]] -> Parser Expr
 expr opss = makeExprParser (some (term opss <* ws) <&> foldl1 App) opss
 
-fndef :: [[Operator Parser Expr]] -> (String, Def)
-fndef opss = undefined
-  
+fndef :: [[Operator Parser Expr]] -> Parser (String, Def)
+fndef opss = do
+  name <- ident <* ws
+  char ':' <* ws
+  ty <- expr opss
+  arms <- some $ do
+    pat <- some $ syms "|" <* ws >> many (term opss <* ws)
+    guard <- optional $ chunk "when" <* ws >> expr opss
+    x <- syms "->" <* ws >> expr opss
+    pure (pat, guard, x)
+  pure (name, Def ty arms)
