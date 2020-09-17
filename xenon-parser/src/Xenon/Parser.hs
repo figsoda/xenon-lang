@@ -184,6 +184,6 @@ fndef opss = do
   arms <- some $ do
     pat <- some $ syms "|" <* ws >> many (term opss <* ws)
     guard <- optional $ chunk "when" <* ws >> expr opss
-    x <- syms "->" <* ws >> expr opss
+    x <- syms "=>" <* ws >> expr opss
     pure (pat, guard, x)
   pure (name, Def ty arms)

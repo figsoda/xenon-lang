@@ -43,7 +43,7 @@ instance Show Expr where
     where
       showArm (pats, guard, val)
         = printf
-            "\n%s%s -> %s"
+            "\n%s%s => %s"
             (concatMap (("| " ++) . show) pats)
             (maybe "" ((" when " ++) . show) guard)
             (show val)
