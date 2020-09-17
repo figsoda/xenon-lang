@@ -49,3 +49,13 @@ instance Show Expr where
             (show val)
 
 data Def = Def Expr (NonEmpty (NonEmpty [Expr], Maybe Expr, Expr))
+
+instance Show Def where
+  show (Def ty xs) = show ty ++ concatMap showArm xs
+    where
+      showArm (pats, guard, val)
+        = printf
+            "\n%s%s => %s"
+            (concatMap (("| " ++) . show) pats)
+            (maybe "" ((" when " ++) . show) guard)
+            (show val)
