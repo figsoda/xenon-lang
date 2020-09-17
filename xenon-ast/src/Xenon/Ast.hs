@@ -22,33 +22,31 @@ data Expr
   | Arrow Expr Expr
   | Context String String [Expr] Expr
 
+showArm :: Show a => (NonEmpty a, Maybe Expr, Expr) -> String
+showArm (pats, guard, val)
+  = printf
+      "\n%s%s => %s"
+      (concatMap (("| " ++) . show) pats)
+      (maybe "" ((" when " ++) . show) guard)
+      (show val)
+
 instance Show Expr where
   show (Int x) = show x
   show (Nat x) = '+' : show x
   show (Float x) = show x
   show (Char x) = show x
   show (String x) = show x
-  show (Var x xs) = foldl ((++) . (++ ".")) x xs
+  show (Var x xs) = x ++ concatMap ('.' :) xs
   show Unit = "()"
   show (Pair x y) = printf "(%s,%s)" (show x) (show y)
   show (List x) = show x
   show (App x y) = printf "(%s %s)" (show x) (show y)
-  show (Let xs x)
-    = printf
-        "let %s in %s"
-        (intercalate ", "
-         $ map (\(pat, val) -> printf "%s = %s" (show pat) (show val)) xs)
-        (show x)
+  show (Let xs x) = printf "let %s in %s" (intercalate ", " ys) (show x)
+    where
+      ys = map (\(pat, val) -> show pat ++ " = " ++ show val) xs
   show (If cond x y)
     = printf "if %s then %s else %s" (show cond) (show x) (show y)
   show (Match x xs) = "match " ++ show x ++ concatMap showArm xs
-    where
-      showArm (pats, guard, val)
-        = printf
-            "\n%s%s => %s"
-            (concatMap (("| " ++) . show) pats)
-            (maybe "" ((" when " ++) . show) guard)
-            (show val)
   show (Arrow x y) = show x ++ " -> " ++ show y
   show (Context name trait args x)
     = printf
@@ -62,10 +60,3 @@ data Def = Def Expr (NonEmpty (NonEmpty [Expr], Maybe Expr, Expr))
 
 instance Show Def where
   show (Def ty xs) = show ty ++ concatMap showArm xs
-    where
-      showArm (pats, guard, val)
-        = printf
-            "\n%s%s => %s"
-            (concatMap (("| " ++) . show) pats)
-            (maybe "" ((" when " ++) . show) guard)
-            (show val)
