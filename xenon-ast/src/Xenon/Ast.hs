@@ -48,4 +48,4 @@ instance Show Expr where
             (maybe "" ((" when " ++) . show) guard)
             (show val)
 
-data Def = Def Expr [([Expr], Expr)]
+data Def = Def Expr (NonEmpty (NonEmpty [Expr], Maybe Expr, Expr))
