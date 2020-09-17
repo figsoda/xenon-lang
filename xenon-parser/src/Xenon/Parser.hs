@@ -122,7 +122,7 @@ term opss
           <&> String
       , chunk "r\"" >> takeWhileP Nothing (/= '"') <* takeP Nothing 1
           <&> String . unpack
-      , sepBy1 ident (char '.') <&> \(x :| xs) -> Var x xs
+      , flip Var <$> many (try $ ident <* char '.') <*> ident
       , do
           char '(' <* ws
           xs <- sepEndBy (expr opss) (char ',' <* ws)
