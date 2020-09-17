@@ -19,6 +19,8 @@ data Expr
   | Let [(Expr, Expr)] Expr
   | If Expr Expr Expr
   | Match Expr (NonEmpty (NonEmpty Expr, Maybe Expr, Expr))
+  | Arrow Expr Expr
+  | Context String String [Expr] Expr
 
 instance Show Expr where
   show (Int x) = show x
@@ -47,6 +49,14 @@ instance Show Expr where
             (concatMap (("| " ++) . show) pats)
             (maybe "" ((" when " ++) . show) guard)
             (show val)
+  show (Arrow x y) = show x ++ " -> " ++ show y
+  show (Context name trait args x)
+    = printf
+        "%s : %s%s => %s"
+        name
+        trait
+        (concatMap ((' ' :) . show) args)
+        (show x)
 
 data Def = Def Expr (NonEmpty (NonEmpty [Expr], Maybe Expr, Expr))
 
