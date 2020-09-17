@@ -20,7 +20,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char ( char, space, space1 )
 import Text.Megaparsec.Char.Lexer ( binary, decimal, float, hexadecimal, octal )
 import Text.Megaparsec.Error ( ErrorItem(..) )
-import Xenon.Ast ( Expr(..), FnDef(..) )
+import Xenon.Ast ( Def(..), Expr(..) )
 
 data ParseError = InvalidUnicodeEscape
   deriving ( Eq, Ord )
@@ -176,5 +176,6 @@ term opss
 expr :: [[Operator Parser Expr]] -> Parser Expr
 expr opss = makeExprParser (some (term opss <* ws) <&> foldl1 App) opss
 
-fndef :: [[Operator Parser Expr]] -> FnDef
-fndef = undefined
+fndef :: [[Operator Parser Expr]] -> (String, Def)
+fndef opss = undefined
+  
