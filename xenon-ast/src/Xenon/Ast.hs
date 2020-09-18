@@ -60,4 +60,4 @@ instance Show Expr where
 data Fn = Fn Expr (NonEmpty (NonEmpty [Expr], Maybe Expr, Expr))
 
 instance Show Fn where
-  show (Fn ty xs) = show ty ++ concatMap showArm xs
+  show (Fn ty xs) = show ty ++ concatMap showArm xs ++ "\n;"

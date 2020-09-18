@@ -193,4 +193,5 @@ declFn opss = do
     guard <- optional $ chunk "when" <* ws >> expr opss
     x <- syms "=>" <* ws >> expr opss
     pure (pat, guard, x)
+  char ';'
   pure (name, Fn ty arms)
