@@ -36,10 +36,11 @@ infixl 5 <@>
 (<@>) :: Applicative f => f a -> f b -> f ()
 (<@>) = liftA2 (\_ _ -> ())
 
-test :: Parser Expr
+test :: Parser (String, Fn)
 test
-  = expr
-      [ [ InfixL $ op "*", InfixL $ op "/" ]
+  = declFn
+      [ [ InfixR $ syms "->" <* ws $> Arrow ]
+      , [ InfixL $ op "*", InfixL $ op "/" ]
       , [ InfixL $ op "+", InfixL $ op "-" ]
       ]
   <* eof
