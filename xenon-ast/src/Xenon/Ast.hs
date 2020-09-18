@@ -50,7 +50,7 @@ instance Show Expr where
   show (Arrow x y) = show x ++ " -> " ++ show y
   show (Context name path trait args x)
     = printf
-        "%s : %s%s%s => %s"
+        "%s ~ %s%s%s => %s"
         name
         (concatMap (++ ".") path)
         trait

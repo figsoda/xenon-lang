@@ -54,7 +54,7 @@ ws
   <|> syms "/*" <@> manyTill anySingle "*/"
 
 sym :: Parser Char
-sym = oneOf ("!#$%&*+-/:<=>@\\^|" :: String)
+sym = oneOf ("!#$%&*+-/:<=>@\\^|~" :: String)
 
 syms :: Text -> Parser Text
 syms xs = try $ chunk xs <* notFollowedBy sym
@@ -123,7 +123,7 @@ term opss
       , chunk "r\"" >> takeWhileP Nothing (/= '"') <* takeP Nothing 1
           <&> String . unpack
       , do
-          name <- try $ ident <* ws <* syms ":" <* ws
+          name <- try $ ident <* ws <* syms "~" <* ws
           path <- many $ try $ ident <* char '.'
           trait <- ident <* ws
           args <- many $ (term opss <* ws)
@@ -162,7 +162,7 @@ term opss
           arms <- some $ do
             pat <- some $ syms "|" <* ws >> expr opss
             guard <- optional $ chunk "when" <* ws >> expr opss
-            x <- syms "->" <* ws >> expr opss
+            x <- syms "=>" <* ws >> expr opss
             pure (pat, guard, x)
           pure $ Match val arms
       ]
