@@ -11,7 +11,7 @@ data Expr
   | Float Double
   | Char Char
   | String String
-  | Var String [String]
+  | Var [String] String
   | Unit
   | Pair Expr Expr
   | List [Expr]
@@ -36,7 +36,7 @@ instance Show Expr where
   show (Float x) = show x
   show (Char x) = show x
   show (String x) = show x
-  show (Var x xs) = concatMap (++ ".") xs ++ x
+  show (Var xs x) = concatMap (++ ".") xs ++ x
   show Unit = "()"
   show (Pair x y) = printf "(%s,%s)" (show x) (show y)
   show (List x) = show x

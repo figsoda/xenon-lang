@@ -59,7 +59,7 @@ syms :: Text -> Parser Text
 syms xs = try $ chunk xs <* notFollowedBy sym
 
 op :: String -> Parser (Expr -> Expr -> Expr)
-op xs = syms (pack xs) <* ws $> App . App (Var xs [])
+op xs = syms (pack xs) <* ws $> App . App (Var [] xs)
 
 ident :: Parser String
 ident = try $ do
@@ -128,7 +128,7 @@ term opss
           args <- many $ (term opss <* ws)
           x <- syms "=>" <* ws >> expr opss
           pure $ Context name trait path args x
-      , flip Var <$> many (try $ ident <* char '.') <*> ident
+      , Var <$> many (try $ ident <* char '.') <*> ident
       , do
           char '(' <* ws
           xs <- sepEndBy (expr opss) (char ',' <* ws)
