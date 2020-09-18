@@ -122,11 +122,10 @@ term opss
       , chunk "r\"" >> takeWhileP Nothing (/= '"') <* takeP Nothing 1
           <&> String . unpack
       , do
-          name <- ident <* ws
-          syms ":" <* ws
+          name <- try $ ident <* ws <* syms ":" <* ws
           path <- many $ try $ ident <* char '.'
           trait <- ident <* ws
-          args <- many $ term opss
+          args <- many $ (term opss <* ws)
           x <- syms "=>" <* ws >> expr opss
           pure $ Context name trait path args x
       , flip Var <$> many (try $ ident <* char '.') <*> ident
