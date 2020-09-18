@@ -127,7 +127,7 @@ term opss
           trait <- ident <* ws
           args <- many $ (term opss <* ws)
           x <- syms "=>" <* ws >> expr opss
-          pure $ Context name trait path args x
+          pure $ Context name path trait args x
       , Var <$> many (try $ ident <* char '.') <*> ident
       , do
           char '(' <* ws

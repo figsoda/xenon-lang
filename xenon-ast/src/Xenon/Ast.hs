@@ -20,7 +20,7 @@ data Expr
   | If Expr Expr Expr
   | Match Expr (NonEmpty (NonEmpty Expr, Maybe Expr, Expr))
   | Arrow Expr Expr
-  | Context String String [String] [Expr] Expr
+  | Context String [String] String [Expr] Expr
 
 showArm :: Show a => (NonEmpty a, Maybe Expr, Expr) -> String
 showArm (pats, guard, val)
@@ -48,7 +48,7 @@ instance Show Expr where
     = printf "if %s then %s else %s" (show cond) (show x) (show y)
   show (Match x xs) = "match " ++ show x ++ concatMap showArm xs
   show (Arrow x y) = show x ++ " -> " ++ show y
-  show (Context name trait path args x)
+  show (Context name path trait args x)
     = printf
         "%s : %s%s%s => %s"
         name
