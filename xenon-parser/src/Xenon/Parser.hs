@@ -7,10 +7,9 @@ import Control.Applicative ( liftA2 )
 import Control.Monad.Combinators
   ( (<|>), choice, many, manyTill, optional, sepEndBy, skipMany )
 import Control.Monad.Combinators.Expr ( Operator(..), makeExprParser )
-import Control.Monad.Combinators.NonEmpty ( sepBy1, some )
+import Control.Monad.Combinators.NonEmpty ( some )
 import Data.Char ( isAsciiLower, isAsciiUpper, isDigit )
 import Data.Functor ( ($>), (<&>) )
-import Data.List.NonEmpty ( NonEmpty(..) )
 import Data.Text ( Text, pack, unpack )
 import GHC.Exts ( fromList )
 import Numeric.Natural ( Natural )
@@ -122,6 +121,14 @@ term opss
           <&> String
       , chunk "r\"" >> takeWhileP Nothing (/= '"') <* takeP Nothing 1
           <&> String . unpack
+      , do
+          name <- ident
+          syms ":" <* ws
+          path <- many $ try $ ident <* char '.'
+          trait <- ident <* ws
+          args <- many $ term opss
+          x <- syms "=>" <* ws >> expr opss
+          pure $ Context name trait path args x
       , flip Var <$> many (try $ ident <* char '.') <*> ident
       , do
           char '(' <* ws
