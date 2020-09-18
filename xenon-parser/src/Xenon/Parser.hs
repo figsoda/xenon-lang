@@ -122,7 +122,7 @@ term opss
       , chunk "r\"" >> takeWhileP Nothing (/= '"') <* takeP Nothing 1
           <&> String . unpack
       , do
-          name <- ident
+          name <- ident <* ws
           syms ":" <* ws
           path <- many $ try $ ident <* char '.'
           trait <- ident <* ws
