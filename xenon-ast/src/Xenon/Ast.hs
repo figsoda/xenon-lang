@@ -1,4 +1,4 @@
-module Xenon.Ast ( Expr(..), Def(..) ) where
+module Xenon.Ast ( Expr(..), Fn(..) ) where
 
 import Data.List ( intercalate )
 import Data.List.NonEmpty ( NonEmpty(..) )
@@ -57,7 +57,7 @@ instance Show Expr where
         (concatMap ((' ' :) . show) args)
         (show x)
 
-data Def = Def Expr (NonEmpty (NonEmpty [Expr], Maybe Expr, Expr))
+data Fn = Fn Expr (NonEmpty (NonEmpty [Expr], Maybe Expr, Expr))
 
-instance Show Def where
-  show (Def ty xs) = show ty ++ concatMap showArm xs
+instance Show Fn where
+  show (Fn ty xs) = show ty ++ concatMap showArm xs
