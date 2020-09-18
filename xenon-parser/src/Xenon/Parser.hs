@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Xenon.Parser ( Parser, expr, fndef, ident, term, test ) where
+module Xenon.Parser ( Parser, declFn, expr, ident, term, test ) where
 
 import Control.Applicative ( liftA2 )
 import Control.Monad.Combinators
@@ -182,8 +182,8 @@ term opss
 expr :: [[Operator Parser Expr]] -> Parser Expr
 expr opss = makeExprParser (some (term opss <* ws) <&> foldl1 App) opss
 
-fndef :: [[Operator Parser Expr]] -> Parser (String, Fn)
-fndef opss = do
+declFn :: [[Operator Parser Expr]] -> Parser (String, Fn)
+declFn opss = do
   name <- ident <* ws
   char ':' <* ws
   ty <- expr opss
