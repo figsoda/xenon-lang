@@ -126,7 +126,7 @@ term opss
           name <- try $ ident <* ws <* syms "~" <* ws
           path <- many $ try $ ident <* char '.'
           trait <- ident <* ws
-          args <- many $ (term opss <* ws)
+          args <- many (term opss <* ws)
           x <- syms "=>" <* ws >> expr opss
           pure $ Context name path trait args x
       , Var <$> many (try $ ident <* char '.') <*> ident
