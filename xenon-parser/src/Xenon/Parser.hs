@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Xenon.Parser ( Parser, declFn, expr, ident, term, test ) where
+module Xenon.Parser ( OpTable, Parser, declFn, expr, ident, term, test ) where
 
 import Control.Applicative ( liftA2 )
 import Control.Monad.Combinators
@@ -83,7 +83,9 @@ ident = try $ do
           (Just $ Label $ fromList ("keyword " ++ show xs))
           (fromList [ Label $ fromList "identifier" ])
 
-term :: [[Operator Parser Expr]] -> Parser Expr
+type OpTable = [[Operator Parser Expr]]
+
+term :: OpTable -> Parser Expr
 term opss
   = choice
       [ try (signedInt <* (char '0' >> char 'B' <|> char 'b')) <*> binary
@@ -180,10 +182,10 @@ term opss
         then pure $ toEnum x
         else customFailure InvalidUnicodeEscape
 
-expr :: [[Operator Parser Expr]] -> Parser Expr
+expr :: OpTable -> Parser Expr
 expr opss = makeExprParser (some (term opss <* ws) <&> foldl1 App) opss
 
-declFn :: [[Operator Parser Expr]] -> Parser (String, Fn)
+declFn :: OpTable -> Parser (String, Fn)
 declFn opss = do
   name <- ident <* ws
   char ':' <* ws
